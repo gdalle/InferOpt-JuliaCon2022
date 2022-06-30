@@ -791,38 +791,26 @@ md"""
 md"""
 ## Problem statement
 
-- We observe the itineraries chosen by a public transport user in different networks
-- We want to understand their decision-making process (a.k.a. recover their utility function).
+We observe a set of data points:
+- a graph ``G``, and features on each node: public transport network
+- a shortest path ``P``: itinerary taken by the user
 
-Each dataset point consists in:
-- a graph ``G``
-- a shortest path ``P`` from the top left to the bottom right corner, taken by the user
+**Objective**: propose relevant paths for the user's future travels
 
-We don't know the true costs that were used to compute the shortest path, but we can exploit a set of features to approximate these costs.
-
-We will use `InferOpt` to learn the appropriate weights, so that we may propose relevant paths to the user in the future.
-"""
-
-# ╔═╡ 3d367d33-566f-4ed8-ab1d-f6c97b5da245
-md"""
-> Too much to read
+``\implies`` we need to learn the user utility function, which is unknown.
 """
 
 # ╔═╡ 9d28cfad-1ee4-4946-9090-6d06ed985761
 md"""
 ## GridGraphs
 
-- We consider grid graphs, as implemented in [https://github.com/gdalle/GridGraphs.jl](https://github.com/gdalle/GridGraphs.jl).
-- Each vertex corresponds to a couple of coordinates ``(i, j)``, where ``1 \leq i \leq h`` and ``1 \leq j \leq w``.
-- We only allow the user to move right, down or both $\implies$ ensures acyclicity
+- Vertices ``(i, j)``, ``1 \leq i \leq h``, ``1 \leq j \leq w``.
+- User can only move right, down or both $\implies$ acyclicity
 - The cost of a move is defined as the cost of the arrival vertex
-
 ``\implies`` any grid graph is entirely characterized by its cost matrix ``\theta \in \mathbb{R}^{h \times w}``.
-"""
 
-# ╔═╡ 06782b53-3e82-40eb-ad81-c756fd434449
-md"""
-> Too much to read
+
+See [https://github.com/gdalle/GridGraphs.jl](https://github.com/gdalle/GridGraphs.jl) for more details.
 """
 
 # ╔═╡ b5b1322b-bd82-4f25-b888-7dbefd8fb1e0
@@ -855,7 +843,7 @@ spy(sparse(p))
 
 # ╔═╡ 4633febc-b1ce-43a6-8f3a-854e29c56beb
 md"""
-## Input data
+## Input data (1)
 
 - We don't know the cost of each vertex.
 - We have have access to a set of relevant features.
@@ -888,39 +876,34 @@ Compute true (unknown) vertex costs
 # ╔═╡ 4435ed2f-718b-444e-8c2b-a7c04cde8ad8
 θ_train = [true_encoder(x) for x in X_train];
 
-# ╔═╡ fbfcb707-4f93-4716-83f4-cd2bf39ff968
+# ╔═╡ b910aefc-822a-4adc-81e1-b08673729e0c
 md"""
-> Split slide
+## Input data (2)
 """
 
 # ╔═╡ 9f52266e-3ad3-4823-a1ab-dd08294136d6
 md"""
-The true vertex costs computed from this encoding are then used within longest path computations:
+The true vertex costs computed from this encoding are then used within longest path computations (shortest path with $-\theta$):
 
 ```math
 \underset{y \in \mathcal{P}}{\mathrm{argmax}}  ~ \theta^\top y
 ```
 """
 
-# ╔═╡ e1e754b7-7359-42f6-9318-606943dae880
-md"""
-> I replaced $\{0, 1\}^{h \times w}$ with $\mathcal{P}$ since we have additional path constraints: maybe define it somewhere
-"""
-
 # ╔═╡ 04ca9af8-d29b-4694-af98-fce02036023f
-function linear_maximizer(θ; instance=nothing)
+function shortest_path(θ; instance=nothing)
     g = AcyclicGridGraph(-θ)
     path = grid_topological_sort(g, 1, nv(g))
     return path_to_matrix(g, path)
 end;
 
-# ╔═╡ bfcaaf59-de28-4762-9e7e-7d6d8fd21900
+# ╔═╡ 953213c6-4726-400d-adf0-8e36defe1ce4
 md"""
-> Use a less ambiguous name than `linear_maximizer`: `shortest_path`?
+Compute optimal paths taken by the user.
 """
 
 # ╔═╡ bd4c8210-75ac-45bc-8aa2-4f34dd0fd852
-Y_train = [linear_maximizer(θ) for θ in θ_train];
+Y_train = [shortest_path(θ) for θ in θ_train];
 
 # ╔═╡ 0ca87da2-bb36-4c75-bf59-fe2cfe73edd4
 md"""
@@ -946,21 +929,26 @@ begin
 	TwoColumn(set_ε, set_nb_samples, 50, 50)
 end
 
-# ╔═╡ 168cf8d2-f862-4128-a22c-35bcc2ef853a
-md"""
-> A log scale also works well for $\varepsilon$ sliders
-"""
-
 # ╔═╡ 4107ded4-4e57-4f22-ad50-83735f7a97ff
-predictor = PerturbedAdditive(linear_maximizer; ε=ε, nb_samples=M);
+predictor = PerturbedAdditive(shortest_path; ε=ε, nb_samples=M);
 
 # ╔═╡ be133738-eeea-4db2-90d4-47266bf80a65
 spy(predictor(θ_train[1]))
 
 # ╔═╡ 4b66eabd-eae6-4ee1-9555-a2baf43c8a2e
 md"""
-Instead of choosing just one path, it spreads over several possible paths, allowing its output to change smoothly as ``\theta`` varies.
+Instead of choosing just one path, it spreads over several possible paths.
+
+``\implies`` output changes smoothly as ``\theta`` varies.
 """
+
+# ╔═╡ 08b3bac8-e3f3-46eb-b147-683bc540dd81
+function normalized_hamming_distance(Y_pred)
+	return mean(
+		normalized_hamming_distance(y, y_pred)
+			for (y, y_pred) in zip(Y_train, Y_pred)
+	)
+end;
 
 # ╔═╡ 3e384580-500c-4b26-b5ab-d0ec84e1eb40
 md"""
@@ -970,7 +958,7 @@ Thanks to this smoothing, we can now train our model with a standard gradient op
 """
 
 # ╔═╡ d3b46a83-2a9c-49b1-b9be-10e5b8848f9a
-regularized_predictor = PerturbedAdditive(linear_maximizer; ε=1.0, nb_samples=5);
+regularized_predictor = PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5);
 
 # ╔═╡ 5cb477cd-e20c-4006-90b1-8d43a1fa1ce6
 fyloss = FenchelYoungLoss(regularized_predictor);
@@ -984,8 +972,7 @@ Training loop using Flux:
 begin
 	encoder = deepcopy(initial_encoder)
 	opt = ADAM();
-	fylosses = Float64[]
-	fyhamming_distances = Float64[]
+	fylosses, fyhamming_distances = Float64[], Float64[]
 	@progress for epoch in 1:100
 	    l = 0.
 	    for (x, y) in zip(X_train, Y_train)
@@ -994,20 +981,11 @@ begin
 	        end
 	        Flux.update!(opt, Flux.params(encoder), grads)
 	    end
-		Y_train_pred = [linear_maximizer(encoder(x)) for x in X_train];
-		train_error = mean(
-		    normalized_hamming_distance(y, y_pred)
-				for (y, y_pred) in zip(Y_train, Y_train_pred)
-		)
-		push!(fyhamming_distances, train_error)
 	    push!(fylosses, l)
+		Y_pred = [shortest_path(encoder(x)) for x in X_train];
+		push!(fyhamming_distances, normalized_hamming_distance(Y_pred))
 	end;
 end;
-
-# ╔═╡ 8d1e4527-2592-4b89-8bb4-e7137f1b338e
-md"""
-> Put the loop inside a function / simplify it somehow ? Do we need all of it?
-"""
 
 # ╔═╡ ba00f149-c675-4dfb-97fb-483df8fa761d
 md"""
@@ -1017,12 +995,7 @@ Since the Fenchel-Young loss is convex, the training works well:
 """
 
 # ╔═╡ 28eec921-d948-4ace-b0a0-1a35b6f464d7
-plot(fylosses, xlabel="Epoch", ylabel="Loss", label=nothing)
-
-# ╔═╡ 6a629cc0-67ce-4243-89df-8f88f25ea499
-md"""
-> More precise title and ylabel: which loss is it? Not the same as in the following graphs!
-"""
+plot(fylosses, xlabel="Epoch", ylabel="Loss value", title="Fenchel-Young loss evolution", label=nothing)
 
 # ╔═╡ 53521e21-7040-493e-802a-cf75cb4c0f65
 @info "Final loss" fylosses[end]
@@ -1033,14 +1006,7 @@ md"""
 """
 
 # ╔═╡ 1cf291f1-7a8a-4573-891d-ab84162e0895
-plot(fyhamming_distances, xlabel="Epoch", ylabel="Normalized hamming distance", label=nothing)
-
-# ╔═╡ ea24b374-4282-4420-97ad-b1bd12c8ad67
-md"""
-> Title
-
-> ylabel: "Hamming distance: predicted vs actual path
-"""
+plot(fyhamming_distances, xlabel="Epoch", ylabel="Normalized hamming distance", title="Hamming distance: predicted vs actual path", label=nothing)
 
 # ╔═╡ 5ec3cc3f-3bfb-4bfd-8014-728bf27e140e
 @info "Final hamming distance" fyhamming_distances[end]
@@ -1055,7 +1021,7 @@ When the user costs $\theta$ are known for our dataset, we can use another loss 
 """
 
 # ╔═╡ c1763137-a746-4fc8-b0c7-a4da50105926
-spo_loss = SPOPlusLoss(linear_maximizer);
+spo_loss = SPOPlusLoss(shortest_path);
 
 # ╔═╡ 7ad675e8-bbe7-41a8-ad53-decdb8267097
 begin
@@ -1071,19 +1037,10 @@ begin
 	        Flux.update!(opt, Flux.params(encoder2), grads)
 	    end
 	    push!(spolosses, l)
-		Y_train_pred = [linear_maximizer(encoder2(x)) for x in X_train];
-		train_error = mean(
-		    normalized_hamming_distance(y, y_pred)
-				for (y, y_pred) in zip(Y_train, Y_train_pred)
-		)
-		push!(spohamming_distances, train_error)
+		Y_pred = [shortest_path(encoder2(x)) for x in X_train];
+		push!(spohamming_distances, normalized_hamming_distance(Y_pred))
 	end;
 end;
-
-# ╔═╡ 85277240-b5af-400c-9bd6-eb0beabd5da3
-md"""
-> The second training loop definitely doesn't need to be shown
-"""
 
 # ╔═╡ 8010bd8a-5f63-4ee8-8f23-34b59c0297e4
 md"""
@@ -1091,12 +1048,7 @@ md"""
 """
 
 # ╔═╡ 1b17fd8f-008e-4064-a866-332071647796
-plot(spolosses, xlabel="Epoch", ylabel="Loss", label=nothing)
-
-# ╔═╡ 861acff4-972f-4cbb-b18e-eab9e884b96c
-md"""
-> More precise
-"""
+plot(spolosses, xlabel="Epoch", ylabel="Loss value", title="SPO+ loss evolution", label=nothing)
 
 # ╔═╡ 910f89b9-64dd-480b-b6d7-19f8eb61923d
 @info "Final loss" spolosses[end]
@@ -1107,12 +1059,7 @@ md"""
 """
 
 # ╔═╡ 5a6759db-ad6c-48ac-aff3-266b76c9b715
-plot(spohamming_distances, xlabel="Epoch", ylabel="Normalized hamming distance", label=nothing)
-
-# ╔═╡ ef9df41d-09f9-4c75-ae2f-eeb49907b106
-md"""
-> More precise
-"""
+plot(spohamming_distances, xlabel="Epoch", ylabel="Normalized hamming distance", title="Hamming distance: predicted vs actual path", label=nothing)
 
 # ╔═╡ 953523a6-fa73-46ca-a59d-11bd818f8a11
 @info "Final hamming distance" spohamming_distances[end] 
@@ -1121,6 +1068,16 @@ md"""
 function path_cost(y; instance)
 	θ = true_encoder(instance)
     return return sum(-θ[i] * y[i] for i in eachindex(y))
+end;
+
+# ╔═╡ 53665dae-662d-4121-b08a-d477fab2578a
+begin
+	optimal_costs = [path_cost(y; instance=x) for (x, y) in zip(X_train, Y_train)]
+	function cost_gap(Y_pred)
+		return mean((path_cost(y_pred; instance=x) - c) / abs(c)
+			for (x, c, y_pred) in zip(X_train, optimal_costs, Y_pred)
+		)
+	end
 end;
 
 # ╔═╡ ee6a4ba8-1342-448a-999d-aa063e883654
@@ -1136,7 +1093,7 @@ If we cannot have access to chosen paths $y$ or user costs $\theta$ for dataset 
 path_cost
 
 # ╔═╡ adb4ad18-ddc4-477d-8c2b-6e02ad0d4068
-regularized_predictor3 = PerturbedAdditive(linear_maximizer; ε=1.0, nb_samples=5);
+regularized_predictor3 = PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5);
 
 # ╔═╡ 18dcd447-695f-4c14-b646-5c6b24d961ce
 exp_loss = path_cost ∘ regularized_predictor3
@@ -1145,7 +1102,7 @@ exp_loss = path_cost ∘ regularized_predictor3
 begin
 	encoder3 = deepcopy(initial_encoder)
 	exp_losses, cost_gaps, exp_hamming_distances = Float64[], Float64[], Float64[]
-	optimal_costs = [path_cost(y; instance=x) for (x, y) in zip(X_train, Y_train)]
+	
 	@progress for epoch in 1:3000
 	    l = 0.
 	    for x in X_train
@@ -1154,15 +1111,10 @@ begin
 	        end
 	        Flux.update!(opt, Flux.params(encoder3), grads)
 	    end
-		Y_train_pred = [linear_maximizer(encoder3(x)) for x in X_train];
-		train_cost_gap = mean((path_cost(y_pred; instance=x) - c) / abs(c)
-				for (x, c, y_pred) in zip(X_train, optimal_costs, Y_train_pred)
-		)
-		train_error = mean(normalized_hamming_distance(y, y_pred)
-				for (y, y_pred) in zip(Y_train, Y_train_pred)
-		)
-	    push!(exp_losses, l); push!(cost_gaps, train_cost_gap)
-		push!(exp_hamming_distances, train_error)
+	    push!(exp_losses, l);
+		Y_pred = [shortest_path(encoder3(x)) for x in X_train];
+		push!(cost_gaps, cost_gap(Y_pred))
+		push!(exp_hamming_distances, normalized_hamming_distance(Y_pred))
 	end
 end;
 
@@ -1177,12 +1129,7 @@ md"""
 """
 
 # ╔═╡ 2016349b-cfd5-40ef-bfdd-835db6e0f6fe
-plot(exp_losses, xlabel="Epoch", ylabel="Loss", label=nothing)
-
-# ╔═╡ 91bde7f1-c9c6-4401-b530-5ac279b25d1f
-md"""
-> More precise
-"""
+plot(exp_losses, xlabel="Epoch", ylabel="Loss value", title="Perturbed cost loss", label=nothing)
 
 # ╔═╡ 2eb47163-e8dd-4307-8dff-454cabf81d90
 @info "Final loss" exp_losses[end]
@@ -1193,12 +1140,7 @@ md"""
 """
 
 # ╔═╡ c45c5d71-933e-4c1b-bf62-a982ed736ed8
-plot(exp_hamming_distances, xlabel="Epoch", ylabel="Hamming distances", label=nothing)
-
-# ╔═╡ 7ef99b7c-b97b-4e73-97b2-2aac2d8cedd7
-md"""
-> More precise
-"""
+plot(exp_hamming_distances, xlabel="Epoch", ylabel="Hamming distances", title="Hamming distance: predicted vs actual path", label=nothing)
 
 # ╔═╡ 5cc13399-73e9-4717-93cc-fe73f11bccc9
 @info "Final hamming distance" exp_hamming_distances[end] 
@@ -1209,12 +1151,7 @@ md"""
 """
 
 # ╔═╡ 18657b2f-108e-4f11-ae34-3d889e10e76d
-plot(cost_gaps, xlabel="Epoch", ylabel="Cost gap", label=nothing)
-
-# ╔═╡ 36f239c9-c3ed-4394-a6d0-3c99f5cf311f
-md"""
-> More precise
-"""
+plot(cost_gaps, xlabel="Epoch", ylabel="Gap value", title="Path cost gap: predicted vs actual path", label=nothing)
 
 # ╔═╡ b042bd90-8b5e-4556-b8a9-542e35cdb6de
 @info "Final cost gap" cost_gaps[end] 
@@ -1323,9 +1260,7 @@ md"""
 # ╟─9f293911-323f-4c91-926b-cff0927c16a1
 # ╟─86c31ee6-2b45-46c0-99ef-8e8da7c67717
 # ╟─53bd8687-a7bb-43b6-b4b1-f487c9fa40af
-# ╟─3d367d33-566f-4ed8-ab1d-f6c97b5da245
 # ╟─9d28cfad-1ee4-4946-9090-6d06ed985761
-# ╟─06782b53-3e82-40eb-ad81-c756fd434449
 # ╠═b5b1322b-bd82-4f25-b888-7dbefd8fb1e0
 # ╟─cdffe713-0b1d-45cf-b5d3-ea5b86882986
 # ╠═25f0cc4d-f659-44f3-8319-e9a12f8c563a
@@ -1333,7 +1268,7 @@ md"""
 # ╠═5ce19f81-2205-4fc2-88dc-ff8e3c50c28e
 # ╟─7d2e7333-eded-4168-9364-0b7b63f5acd3
 # ╠═ef88fae7-1baf-44bc-8405-20acdb9301a0
-# ╠═b42d417d-aa67-4988-8c4a-dd105d0353f8
+# ╟─b42d417d-aa67-4988-8c4a-dd105d0353f8
 # ╟─4633febc-b1ce-43a6-8f3a-854e29c56beb
 # ╠═28437714-35d6-47dd-8609-441fa0a68eda
 # ╟─3614c791-ce6d-41f2-94ae-ed01cf15fbae
@@ -1342,45 +1277,39 @@ md"""
 # ╠═458ab7d6-45dc-43d4-85ed-8ea355aca06d
 # ╟─67081a13-78fd-485a-89c5-0ca04479a76a
 # ╠═4435ed2f-718b-444e-8c2b-a7c04cde8ad8
-# ╟─fbfcb707-4f93-4716-83f4-cd2bf39ff968
+# ╟─b910aefc-822a-4adc-81e1-b08673729e0c
 # ╟─9f52266e-3ad3-4823-a1ab-dd08294136d6
-# ╟─e1e754b7-7359-42f6-9318-606943dae880
 # ╠═04ca9af8-d29b-4694-af98-fce02036023f
-# ╟─bfcaaf59-de28-4762-9e7e-7d6d8fd21900
+# ╟─953213c6-4726-400d-adf0-8e36defe1ce4
 # ╠═bd4c8210-75ac-45bc-8aa2-4f34dd0fd852
 # ╟─0ca87da2-bb36-4c75-bf59-fe2cfe73edd4
 # ╠═f717b0a9-83a3-400b-8093-80fb6561514f
 # ╟─bc883d10-c074-4e55-8848-892e7f512556
 # ╟─eaa3491f-3dec-465a-9a8a-96d43cc8c4e8
-# ╟─168cf8d2-f862-4128-a22c-35bcc2ef853a
 # ╠═4107ded4-4e57-4f22-ad50-83735f7a97ff
 # ╟─be133738-eeea-4db2-90d4-47266bf80a65
 # ╟─4b66eabd-eae6-4ee1-9555-a2baf43c8a2e
+# ╟─08b3bac8-e3f3-46eb-b147-683bc540dd81
+# ╟─53665dae-662d-4121-b08a-d477fab2578a
 # ╟─3e384580-500c-4b26-b5ab-d0ec84e1eb40
 # ╠═d3b46a83-2a9c-49b1-b9be-10e5b8848f9a
 # ╠═5cb477cd-e20c-4006-90b1-8d43a1fa1ce6
 # ╟─f0220f84-07f7-452f-a975-6f08f27a6d0b
 # ╠═4cc3ae85-028c-4952-9ad8-94063cee74ae
-# ╟─8d1e4527-2592-4b89-8bb4-e7137f1b338e
 # ╟─ba00f149-c675-4dfb-97fb-483df8fa761d
-# ╠═28eec921-d948-4ace-b0a0-1a35b6f464d7
-# ╟─6a629cc0-67ce-4243-89df-8f88f25ea499
+# ╟─28eec921-d948-4ace-b0a0-1a35b6f464d7
 # ╟─53521e21-7040-493e-802a-cf75cb4c0f65
 # ╟─d5746b74-f170-45ac-ad93-be3e9d32f3a0
-# ╠═1cf291f1-7a8a-4573-891d-ab84162e0895
-# ╟─ea24b374-4282-4420-97ad-b1bd12c8ad67
+# ╟─1cf291f1-7a8a-4573-891d-ab84162e0895
 # ╟─5ec3cc3f-3bfb-4bfd-8014-728bf27e140e
 # ╟─e42a5c8f-5511-46e1-9495-8fc198fae087
 # ╠═c1763137-a746-4fc8-b0c7-a4da50105926
 # ╠═7ad675e8-bbe7-41a8-ad53-decdb8267097
-# ╟─85277240-b5af-400c-9bd6-eb0beabd5da3
 # ╟─8010bd8a-5f63-4ee8-8f23-34b59c0297e4
-# ╠═1b17fd8f-008e-4064-a866-332071647796
-# ╟─861acff4-972f-4cbb-b18e-eab9e884b96c
+# ╟─1b17fd8f-008e-4064-a866-332071647796
 # ╟─910f89b9-64dd-480b-b6d7-19f8eb61923d
 # ╟─c6bac43b-dfab-49f8-ae6c-4d33b8b55663
-# ╠═5a6759db-ad6c-48ac-aff3-266b76c9b715
-# ╟─ef9df41d-09f9-4c75-ae2f-eeb49907b106
+# ╟─5a6759db-ad6c-48ac-aff3-266b76c9b715
 # ╟─953523a6-fa73-46ca-a59d-11bd818f8a11
 # ╟─da2931b6-4c0b-43cf-882f-328f67f963b2
 # ╟─ee6a4ba8-1342-448a-999d-aa063e883654
@@ -1390,16 +1319,13 @@ md"""
 # ╠═5eeef94f-5bd3-4165-878b-1b4a66ab71a8
 # ╟─219d28af-1e82-4075-be90-b880b04eba3d
 # ╟─832fa40e-e4ef-42fb-bc25-133d19a5c579
-# ╠═2016349b-cfd5-40ef-bfdd-835db6e0f6fe
-# ╠═91bde7f1-c9c6-4401-b530-5ac279b25d1f
+# ╟─2016349b-cfd5-40ef-bfdd-835db6e0f6fe
 # ╟─2eb47163-e8dd-4307-8dff-454cabf81d90
 # ╟─f1425013-66af-44a9-aada-7101251ef0b9
-# ╠═c45c5d71-933e-4c1b-bf62-a982ed736ed8
-# ╠═7ef99b7c-b97b-4e73-97b2-2aac2d8cedd7
+# ╟─c45c5d71-933e-4c1b-bf62-a982ed736ed8
 # ╟─5cc13399-73e9-4717-93cc-fe73f11bccc9
 # ╟─f25e58ac-ae39-4c46-9328-5eb5656b37ea
-# ╠═18657b2f-108e-4f11-ae34-3d889e10e76d
-# ╠═36f239c9-c3ed-4394-a6d0-3c99f5cf311f
+# ╟─18657b2f-108e-4f11-ae34-3d889e10e76d
 # ╟─b042bd90-8b5e-4556-b8a9-542e35cdb6de
 # ╟─5f5733a5-2bb4-4045-8671-f3dc7b0586fb
 # ╟─d37939ad-4937-46f9-a5f7-5394a8c38ded
