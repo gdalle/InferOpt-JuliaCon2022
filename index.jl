@@ -506,13 +506,25 @@ tikzset{EdgeStyle/.style = {
 
 # ╔═╡ b7477763-33b6-4506-a253-f0700472788d
 md"""
-## Results
+## Results: loss
 """
 
 # ╔═╡ cd4f2546-fe46-42db-8197-7278ccd32cbe
+begin 
+	vsp_loss = load("./images/vsp_loss.png")
+	plot(vsp_loss, ticks = nothing, border = nothing)
+end
+
+# ╔═╡ e87562b4-9b78-46e7-924d-8c966290065a
 md"""
-> Add results
+## Results: cost gap
 """
+
+# ╔═╡ b0833e2c-9334-499d-be58-50d347f462e4
+begin
+	vsp_cost = load("./images/vsp_average_cost_gap.png")
+	plot(vsp_cost, ticks = nothing, border = nothing)
+end
 
 # ╔═╡ fa13eb7d-d6f9-48a8-9745-98bdc7e4ede0
 md"""
@@ -1067,6 +1079,9 @@ path_cost
 # ╔═╡ 18dcd447-695f-4c14-b646-5c6b24d961ce
 exp_loss = PerturbedComposition(regularized_predictor, path_cost);
 
+# ╔═╡ 53c884aa-3a43-47c5-8695-00f29e68b508
+path_cost ∘ regularized_predictor
+
 # ╔═╡ 5eeef94f-5bd3-4165-878b-1b4a66ab71a8
 begin
 	encoder3 = deepcopy(initial_encoder)
@@ -1120,7 +1135,7 @@ md"""
 """
 
 # ╔═╡ 18657b2f-108e-4f11-ae34-3d889e10e76d
-plot(cost_gaps, xlabel="Epoch", ylabel="Cost diff")
+plot(cost_gaps, xlabel="Epoch", ylabel="Cost gap")
 
 # ╔═╡ b042bd90-8b5e-4556-b8a9-542e35cdb6de
 @info "Final cost gap" cost_gaps[end] 
@@ -1195,6 +1210,8 @@ md"""
 # ╟─c9cef05b-944b-4595-863d-a0312973d5a3
 # ╟─b7477763-33b6-4506-a253-f0700472788d
 # ╟─cd4f2546-fe46-42db-8197-7278ccd32cbe
+# ╟─e87562b4-9b78-46e7-924d-8c966290065a
+# ╟─b0833e2c-9334-499d-be58-50d347f462e4
 # ╟─fa13eb7d-d6f9-48a8-9745-98bdc7e4ede0
 # ╟─1484d096-0beb-44d7-8192-6948f3ccd7ca
 # ╟─81011ca8-c063-4ee4-8aaa-1a5021504ad0
@@ -1265,6 +1282,7 @@ md"""
 # ╟─ee6a4ba8-1342-448a-999d-aa063e883654
 # ╠═28043665-f5fa-4ebc-8388-9a378ce1e894
 # ╠═18dcd447-695f-4c14-b646-5c6b24d961ce
+# ╠═53c884aa-3a43-47c5-8695-00f29e68b508
 # ╠═5eeef94f-5bd3-4165-878b-1b4a66ab71a8
 # ╟─832fa40e-e4ef-42fb-bc25-133d19a5c579
 # ╠═2016349b-cfd5-40ef-bfdd-835db6e0f6fe
