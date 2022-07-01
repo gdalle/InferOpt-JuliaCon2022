@@ -206,7 +206,7 @@ begin
 		leftfrac::Int
 		rightfrac::Int
 	end
-	
+
 	function Base.show(io, mime::MIME"text/html", tc::TwoColumn)
 		(; left, right, leftfrac, rightfrac) = tc
 	    write(io, """<div style="display: flex;"><div style="flex: $(leftfrac)%;">""")
@@ -374,7 +374,7 @@ We can compare the predicted costs $\theta = \varphi_w(x)$ and the true costs on
 """
 
 # ╔═╡ 88ba9bb1-02b3-4f32-bf6c-be8f99626f13
-begin 
+begin
 	weights1 = load("./images/weights1.png")
 	plot(weights1, ticks = nothing, border = nothing)
 end
@@ -392,7 +392,7 @@ We can also compare the predicted shortest path with the theoretical one.
 """
 
 # ╔═╡ ea2faddf-38b2-46ab-9a53-2057ade1f198
-begin 
+begin
 	img_path_label1 = load("./images/image_path_label1.png")
 	plot(img_path_label1, ticks = nothing, border = nothing)
 end
@@ -401,11 +401,11 @@ end
 md"""
 ## Test set results (3)
 
-Another example: 
+Another example:
 """
 
 # ╔═╡ 77423e24-7eca-4352-8ee3-0fa7b6e4b687
-begin 
+begin
 	weights2 = load("./images/weights2.png")
 	plot(weights2, ticks = nothing, border = nothing)
 end
@@ -416,7 +416,7 @@ md"""
 """
 
 # ╔═╡ 916ff5c3-dbec-417b-a6eb-d99c7df7fc8b
-begin 
+begin
 	img_path_label2 = load("./images/image_path_label2.png")
 	plot(img_path_label2, ticks = nothing, border = nothing)
 end
@@ -575,7 +575,7 @@ md"""
 """
 
 # ╔═╡ cd4f2546-fe46-42db-8197-7278ccd32cbe
-begin 
+begin
 	vsp_loss = load("./images/vsp_loss.png")
 	plot(vsp_loss, ticks = nothing, border = nothing)
 end
@@ -616,7 +616,7 @@ The function $\theta \mapsto \underset{y \in \mathcal{Y}}{\mathrm{argmax}} ~ \th
 Given a convex function $\Omega$, the regularized optimizer is defined by:
 
 ```math
-\hat{y}_\Omega(\theta) = \underset{y \in \mathrm{conv}(\mathcal{Y})}{\mathrm{argmax}} \{\theta^\top y - \Omega(y)\} 
+\hat{y}_\Omega(\theta) = \underset{y \in \mathrm{conv}(\mathcal{Y})}{\mathrm{argmax}} \{\theta^\top y - \Omega(y)\}
 ```
 """
 
@@ -647,7 +647,7 @@ function plot_polytope(α, predictor; title)
 	A = active_set.atoms
 	p = active_set.weights
 	ŷΩ = active_set.x
-	
+
 	pl = plot(;
 		xlim=(-1.1, 1.1),
 		ylim=(-1.1, 1.1),
@@ -1062,7 +1062,7 @@ md"""
 plot(spohamming_distances, xlabel="Epoch", ylabel="Normalized hamming distance", title="Hamming distance: predicted vs actual path", label=nothing)
 
 # ╔═╡ 953523a6-fa73-46ca-a59d-11bd818f8a11
-@info "Final hamming distance" spohamming_distances[end] 
+@info "Final hamming distance" spohamming_distances[end]
 
 # ╔═╡ da2931b6-4c0b-43cf-882f-328f67f963b2
 function path_cost(y; instance)
@@ -1102,7 +1102,7 @@ exp_loss = path_cost ∘ regularized_predictor3
 begin
 	encoder3 = deepcopy(initial_encoder)
 	exp_losses, cost_gaps, exp_hamming_distances = Float64[], Float64[], Float64[]
-	
+
 	@progress for epoch in 1:3000
 	    l = 0.
 	    for x in X_train
@@ -1143,7 +1143,7 @@ md"""
 plot(exp_hamming_distances, xlabel="Epoch", ylabel="Hamming distances", title="Hamming distance: predicted vs actual path", label=nothing)
 
 # ╔═╡ 5cc13399-73e9-4717-93cc-fe73f11bccc9
-@info "Final hamming distance" exp_hamming_distances[end] 
+@info "Final hamming distance" exp_hamming_distances[end]
 
 # ╔═╡ f25e58ac-ae39-4c46-9328-5eb5656b37ea
 md"""
@@ -1154,7 +1154,7 @@ md"""
 plot(cost_gaps, xlabel="Epoch", ylabel="Gap value", title="Path cost gap: predicted vs actual path", label=nothing)
 
 # ╔═╡ b042bd90-8b5e-4556-b8a9-542e35cdb6de
-@info "Final cost gap" cost_gaps[end] 
+@info "Final cost gap" cost_gaps[end]
 
 # ╔═╡ 5f5733a5-2bb4-4045-8671-f3dc7b0586fb
 md"""
