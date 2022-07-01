@@ -836,10 +836,10 @@ We can easily compute the shortest path:
 """
 
 # ╔═╡ ef88fae7-1baf-44bc-8405-20acdb9301a0
-p = path_to_matrix(g, grid_topological_sort(g, 1, nv(g)));
+y = path_to_matrix(g, grid_topological_sort(g, 1, nv(g)));
 
 # ╔═╡ b42d417d-aa67-4988-8c4a-dd105d0353f8
-spy(sparse(p))
+spy(sparse(y))
 
 # ╔═╡ 4633febc-b1ce-43a6-8f3a-854e29c56beb
 md"""
@@ -875,6 +875,9 @@ Compute true (unknown) vertex costs
 
 # ╔═╡ 4435ed2f-718b-444e-8c2b-a7c04cde8ad8
 θ_train = [true_encoder(x) for x in X_train];
+
+# ╔═╡ 444b6d1f-030e-4c8d-a74d-2ffbf5022649
+x = X_train[1];
 
 # ╔═╡ b910aefc-822a-4adc-81e1-b08673729e0c
 md"""
@@ -952,7 +955,7 @@ end;
 
 # ╔═╡ 3e384580-500c-4b26-b5ab-d0ec84e1eb40
 md"""
-## Training
+## Choosing a loss function
 
 Thanks to this smoothing, we can now train our model with a standard gradient optimizer.
 """
@@ -963,9 +966,21 @@ regularized_predictor = PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5);
 # ╔═╡ 5cb477cd-e20c-4006-90b1-8d43a1fa1ce6
 fyloss = FenchelYoungLoss(regularized_predictor);
 
+# ╔═╡ 0671f818-b38e-4ae0-9cc7-fb82244394ac
+fyloss(initial_encoder(x), y)
+
+# ╔═╡ 7ebf4038-c827-40de-b1ac-7145a6a297f7
+gradient(θ -> fyloss(θ, y), initial_encoder(x))
+
 # ╔═╡ f0220f84-07f7-452f-a975-6f08f27a6d0b
 md"""
-Training loop using Flux:
+## 3.1 Training loop
+"""
+
+# ╔═╡ e9245c18-1fac-49f5-9f68-a46b8e4c0fc9
+md"""
+- using Flux here
+- compatible with any Julia Machine Learning package
 """
 
 # ╔═╡ 4cc3ae85-028c-4952-9ad8-94063cee74ae
@@ -973,7 +988,7 @@ begin
 	encoder = deepcopy(initial_encoder)
 	opt = ADAM();
 	fylosses, fyhamming_distances = Float64[], Float64[]
-	@progress for epoch in 1:100
+	@progress for epoch in 1:200
 	    l = 0.
 	    for (x, y) in zip(X_train, Y_train)
 	        grads = gradient(Flux.params(encoder)) do
@@ -981,7 +996,7 @@ begin
 	        end
 	        Flux.update!(opt, Flux.params(encoder), grads)
 	    end
-	    push!(fylosses, l)
+	    push!(fylosses, l / length(X_train))
 		Y_pred = [shortest_path(encoder(x)) for x in X_train];
 		push!(fyhamming_distances, normalized_hamming_distance(Y_pred))
 	end;
@@ -1013,15 +1028,18 @@ plot(fyhamming_distances, xlabel="Epoch", ylabel="Normalized hamming distance", 
 
 # ╔═╡ e42a5c8f-5511-46e1-9495-8fc198fae087
 md"""
-## Training when $\theta$ costs are known
+## 3.2 Training when $\theta$ costs are known
 
 When the user costs $\theta$ are known for our dataset, we can use another loss to leverage this additional information.
 
-``\implies`` Smart "Predict then optimize" setting
+``\implies`` Smart "Predict then optimize" setting (see [https://arxiv.org/abs/1710.08005](https://arxiv.org/abs/1710.08005))
 """
 
 # ╔═╡ c1763137-a746-4fc8-b0c7-a4da50105926
 spo_loss = SPOPlusLoss(shortest_path);
+
+# ╔═╡ 20ee48a9-7991-43d1-9ade-d1b7f89ebb4e
+spo_loss(initial_encoder(x), θ, y)
 
 # ╔═╡ 7ad675e8-bbe7-41a8-ad53-decdb8267097
 begin
@@ -1082,7 +1100,7 @@ end;
 
 # ╔═╡ ee6a4ba8-1342-448a-999d-aa063e883654
 md"""
-## Training when optimal paths are unknown
+## 3.3 Training when optimal paths are unknown
 
 If we cannot have access to chosen paths $y$ or user costs $\theta$ for dataset instances $x$, but have a blackbox cost function that can evaluate a given path, we still can do something !
 
@@ -1092,17 +1110,22 @@ If we cannot have access to chosen paths $y$ or user costs $\theta$ for dataset 
 # ╔═╡ 28043665-f5fa-4ebc-8388-9a378ce1e894
 path_cost
 
-# ╔═╡ adb4ad18-ddc4-477d-8c2b-6e02ad0d4068
-regularized_predictor3 = PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5);
+# ╔═╡ d11d4529-1c0c-4a15-8566-7ef4d86d4c57
+predicted_path = shortest_path(initial_encoder(x));
+
+# ╔═╡ 51dcdae9-290b-4c08-be04-071c044ae9e4
+path_cost(predicted_path; instance=x)
 
 # ╔═╡ 18dcd447-695f-4c14-b646-5c6b24d961ce
-exp_loss = path_cost ∘ regularized_predictor3
+exp_loss = path_cost ∘ PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5)
+
+# ╔═╡ 8b182c60-18f2-413e-b077-eb1c39090fb5
+exp_loss(initial_encoder(x); instance=x)
 
 # ╔═╡ 5eeef94f-5bd3-4165-878b-1b4a66ab71a8
 begin
 	encoder3 = deepcopy(initial_encoder)
 	exp_losses, cost_gaps, exp_hamming_distances = Float64[], Float64[], Float64[]
-	
 	@progress for epoch in 1:3000
 	    l = 0.
 	    for x in X_train
@@ -1117,11 +1140,6 @@ begin
 		push!(exp_hamming_distances, normalized_hamming_distance(Y_pred))
 	end
 end;
-
-# ╔═╡ 219d28af-1e82-4075-be90-b880b04eba3d
-md"""
-> _Cachez cette training loop que je ne saurais voir!_
-"""
 
 # ╔═╡ 832fa40e-e4ef-42fb-bc25-133d19a5c579
 md"""
@@ -1167,9 +1185,9 @@ md"""
 
 - **Main package:** <https://github.com/axelparmentier/InferOpt.jl>
 - **This notebook:** <https://gdalle.github.io/InferOpt-JuliaCon2022/>
-- paper ?
+- Paper coming soon
 
-More advanced examples:
+More application examples:
 - **Single machine scheduling:** <https://github.com/axelparmentier/SingleMachineScheduling.jl>
 - **Two stage spanning tree:** <https://github.com/axelparmentier/TwoStageSpanningTree.jl>
 - **Shortest paths on Warcraft maps:** <https://github.com/LouisBouvier/WarcraftShortestPaths.jl>
@@ -1180,7 +1198,7 @@ More advanced examples:
 md"""
 ## Perspectives
 
-> Complete this
+- a
 """
 
 # ╔═╡ Cell order:
@@ -1277,6 +1295,7 @@ md"""
 # ╠═458ab7d6-45dc-43d4-85ed-8ea355aca06d
 # ╟─67081a13-78fd-485a-89c5-0ca04479a76a
 # ╠═4435ed2f-718b-444e-8c2b-a7c04cde8ad8
+# ╟─444b6d1f-030e-4c8d-a74d-2ffbf5022649
 # ╟─b910aefc-822a-4adc-81e1-b08673729e0c
 # ╟─9f52266e-3ad3-4823-a1ab-dd08294136d6
 # ╠═04ca9af8-d29b-4694-af98-fce02036023f
@@ -1287,14 +1306,17 @@ md"""
 # ╟─bc883d10-c074-4e55-8848-892e7f512556
 # ╟─eaa3491f-3dec-465a-9a8a-96d43cc8c4e8
 # ╠═4107ded4-4e57-4f22-ad50-83735f7a97ff
-# ╟─be133738-eeea-4db2-90d4-47266bf80a65
+# ╠═be133738-eeea-4db2-90d4-47266bf80a65
 # ╟─4b66eabd-eae6-4ee1-9555-a2baf43c8a2e
 # ╟─08b3bac8-e3f3-46eb-b147-683bc540dd81
 # ╟─53665dae-662d-4121-b08a-d477fab2578a
 # ╟─3e384580-500c-4b26-b5ab-d0ec84e1eb40
 # ╠═d3b46a83-2a9c-49b1-b9be-10e5b8848f9a
 # ╠═5cb477cd-e20c-4006-90b1-8d43a1fa1ce6
+# ╠═0671f818-b38e-4ae0-9cc7-fb82244394ac
+# ╠═7ebf4038-c827-40de-b1ac-7145a6a297f7
 # ╟─f0220f84-07f7-452f-a975-6f08f27a6d0b
+# ╟─e9245c18-1fac-49f5-9f68-a46b8e4c0fc9
 # ╠═4cc3ae85-028c-4952-9ad8-94063cee74ae
 # ╟─ba00f149-c675-4dfb-97fb-483df8fa761d
 # ╟─28eec921-d948-4ace-b0a0-1a35b6f464d7
@@ -1304,7 +1326,8 @@ md"""
 # ╟─5ec3cc3f-3bfb-4bfd-8014-728bf27e140e
 # ╟─e42a5c8f-5511-46e1-9495-8fc198fae087
 # ╠═c1763137-a746-4fc8-b0c7-a4da50105926
-# ╠═7ad675e8-bbe7-41a8-ad53-decdb8267097
+# ╠═20ee48a9-7991-43d1-9ade-d1b7f89ebb4e
+# ╟─7ad675e8-bbe7-41a8-ad53-decdb8267097
 # ╟─8010bd8a-5f63-4ee8-8f23-34b59c0297e4
 # ╟─1b17fd8f-008e-4064-a866-332071647796
 # ╟─910f89b9-64dd-480b-b6d7-19f8eb61923d
@@ -1314,10 +1337,11 @@ md"""
 # ╟─da2931b6-4c0b-43cf-882f-328f67f963b2
 # ╟─ee6a4ba8-1342-448a-999d-aa063e883654
 # ╠═28043665-f5fa-4ebc-8388-9a378ce1e894
-# ╠═adb4ad18-ddc4-477d-8c2b-6e02ad0d4068
+# ╠═d11d4529-1c0c-4a15-8566-7ef4d86d4c57
+# ╠═51dcdae9-290b-4c08-be04-071c044ae9e4
 # ╠═18dcd447-695f-4c14-b646-5c6b24d961ce
-# ╠═5eeef94f-5bd3-4165-878b-1b4a66ab71a8
-# ╟─219d28af-1e82-4075-be90-b880b04eba3d
+# ╠═8b182c60-18f2-413e-b077-eb1c39090fb5
+# ╟─5eeef94f-5bd3-4165-878b-1b4a66ab71a8
 # ╟─832fa40e-e4ef-42fb-bc25-133d19a5c579
 # ╟─2016349b-cfd5-40ef-bfdd-835db6e0f6fe
 # ╟─2eb47163-e8dd-4307-8dff-454cabf81d90
