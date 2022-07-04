@@ -76,9 +76,6 @@ md"""
 TOC
 """
 
-# ╔═╡ 0617b570-c163-4bd6-8a6b-e49653c1af7f
-TableOfContents(depth=1)
-
 # ╔═╡ 8aa02b43-9c28-4d7e-8eac-551b1e8a4e76
 md"""
 Figures
@@ -242,6 +239,8 @@ md"""
 **[Guillaume Dalle](https://gdalle.github.io/), [Léo Baty](https://batyleo.github.io/), [Louis Bouvier](https://louisbouvier.github.io/) & [Axel Parmentier](https://cermics.enpc.fr/~parmenta/)**
 
 CERMICS, École des Ponts
+
+Notebook access: [gdalle.github.io/inferopt-juliacon2022/](gdalle.github.io/inferopt-juliacon2022/)
 """
 
 # ╔═╡ 3ff8833b-e8d8-4621-b062-d3065de91ba6
@@ -306,9 +305,9 @@ Source: [Vlastelica et al. (2020)](https://openreview.net/forum?id=BkevoJSYPB)
 
 # ╔═╡ ad1a47b9-d9d3-4f39-ad8e-7749c651da12
 begin
-	map = plot(load("./images/Warcraft/map.png"))
-	labelpath = plot(load("./images/Warcraft/path.png"))
-	plot(map, labelpath, layout = (1,2), ticks = nothing, border = nothing, size = (800, 400))
+	mapterrain = plot(load("./images/Warcraft/map.png"), title = "Terrain map")
+	labelpath = plot(load("./images/Warcraft/path.png"), title = "Label shortest path")
+	plot(mapterrain, labelpath, layout = (1,2), ticks = nothing, border = nothing, size = (800, 400))
 end
 
 # ╔═╡ f0ee67da-ff8b-4229-a1fc-3be190a2d0b1
@@ -318,7 +317,7 @@ md"""
 
 # ╔═╡ 4c661db2-312a-4e03-8f66-df2bb68ad9a7
 begin
-	warcraftpipeline = load("./images/warcraft_pipeline.png")
+	warcraftpipeline = load("./images/Warcraft/warcraft_pipeline.png")
 end
 
 # ╔═╡ 52ca4280-f092-4941-aed5-e3fc25b3149a
@@ -330,9 +329,9 @@ We can compare the predicted costs $\theta = \varphi_w(x)$ and the true costs on
 
 # ╔═╡ 88ba9bb1-02b3-4f32-bf6c-be8f99626f13
 begin 
-	true_costs = plot(load("./images/Warcraft/costs.png"))
-	computed_costs = plot(load("./images/Warcraft/computed_costs.png"))
-	plot(map, true_costs, computed_costs, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
+	true_costs = plot(load("./images/Warcraft/costs.png"), title = "True costs")
+	computed_costs = plot(load("./images/Warcraft/computed_costs.png"), title = "Computed costs")
+	plot(mapterrain, true_costs, computed_costs, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
 end
 
 # ╔═╡ 9dee8b4a-451c-4714-8257-9a47b2133002
@@ -342,8 +341,8 @@ md"""
 
 # ╔═╡ ea2faddf-38b2-46ab-9a53-2057ade1f198
 begin 
-	computed_path = plot(load("./images/Warcraft/computed_path.png"))
-	plot(map, labelpath, computed_path, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
+	computed_path = plot(load("./images/Warcraft/computed_path.png"), title = "Computed shortest path")
+	plot(mapterrain, labelpath, computed_path, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
 end
 
 # ╔═╡ 5f023b91-b0ae-4e91-94fb-f56312c8135f
@@ -414,8 +413,7 @@ md"""
 \begin{aligned}
 \min_y &\quad \sum_{a\in\ A}\theta_a y_a\\
 \text{s.t.} & \sum_{a\in\delta^-(t)}y_a = \sum_{a\in\delta^+(t)}y_a,\quad & \forall t\in T\\
-& \sum_{a\in\delta^+(t)}y_a = 1, & \forall t\in T\\
-& y_a\in \{0, 1\}, & \forall a\in A
+& \sum_{a\in\delta^+(t)}y_a = 1, & \forall t\in T
 \end{aligned}
 \right.
 ```
@@ -661,7 +659,6 @@ The optimization block has meaningful gradients $\implies$ we can backpropagate 
 # ╟─0cd10bf9-c31e-4f86-833a-f6f64b951015
 # ╟─9de3b7ab-14b0-4a79-bd51-6202f7cdfdfd
 # ╟─6cf9db2d-f16d-4e4e-a1e4-915d37a2705f
-# ╟─0617b570-c163-4bd6-8a6b-e49653c1af7f
 # ╟─8aa02b43-9c28-4d7e-8eac-551b1e8a4e76
 # ╟─5e9486a3-5518-44ad-a9f2-d5371092e46f
 # ╟─e716f94c-1f4a-4616-bc65-c1e48723bfe3
@@ -685,7 +682,7 @@ The optimization block has meaningful gradients $\implies$ we can backpropagate 
 # ╟─f0ee67da-ff8b-4229-a1fc-3be190a2d0b1
 # ╟─4c661db2-312a-4e03-8f66-df2bb68ad9a7
 # ╟─52ca4280-f092-4941-aed5-e3fc25b3149a
-# ╠═88ba9bb1-02b3-4f32-bf6c-be8f99626f13
+# ╟─88ba9bb1-02b3-4f32-bf6c-be8f99626f13
 # ╟─9dee8b4a-451c-4714-8257-9a47b2133002
 # ╟─ea2faddf-38b2-46ab-9a53-2057ade1f198
 # ╟─5f023b91-b0ae-4e91-94fb-f56312c8135f
