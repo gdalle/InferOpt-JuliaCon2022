@@ -247,7 +247,6 @@ CERMICS, École des Ponts
 # ╔═╡ 3ff8833b-e8d8-4621-b062-d3065de91ba6
 begin
 	ptetes = load("./images/tetes.png")
-	plot(ptetes, ticks = nothing, border = nothing)
 end
 
 # ╔═╡ c820e809-5d03-4073-8326-1fe782decb44
@@ -287,8 +286,8 @@ md"""
 
 - Shortest paths on Warcraft maps $\impliedby$ **today**.
 - Stochastic Vehicle Scheduling $\impliedby$ **today**.
-- Two-stage Minimum Spanning Tree $\impliedby$ see InferOpt.jl documentation.
-- Single-machine scheduling $\impliedby$ see InferOpt.jl documentation.
+- Two-stage Minimum Spanning Tree $\impliedby$ see satellite packages.
+- Single-machine scheduling $\impliedby$ see satellite packages.
 """
 
 # ╔═╡ ec6237ae-e7d8-4191-bc2c-8722b7b9fe63
@@ -307,8 +306,9 @@ Source: [Vlastelica et al. (2020)](https://openreview.net/forum?id=BkevoJSYPB)
 
 # ╔═╡ ad1a47b9-d9d3-4f39-ad8e-7749c651da12
 begin
-	image_label2 = load("./images/image_label1.png")
-	plot(image_label2, ticks = nothing, border = nothing)
+	map = plot(load("./images/Warcraft/map.pdf"))
+	labelpath = plot(load("./images/Warcraft/path.pdf"))
+	plot(map, labelpath, layout = (1,2), ticks = nothing, border = nothing, size = (800, 400))
 end
 
 # ╔═╡ f0ee67da-ff8b-4229-a1fc-3be190a2d0b1
@@ -319,42 +319,31 @@ md"""
 # ╔═╡ 4c661db2-312a-4e03-8f66-df2bb68ad9a7
 begin
 	warcraftpipeline = load("./images/warcraft_pipeline.png")
-	plot(warcraftpipeline, ticks = nothing, border = nothing)
-end
-
-# ╔═╡ d32c406d-f3d2-450d-a42d-d1ccab1b66b0
-md"""
-## Training pipeline
-
-Small sub-dataset: 80 maps in the train set, 20 in the test set.
-
-
-`loss = FenchelYoungLoss(PerturbedMultiplicative(linear_maximizer;  ε=ϵ, nb_samples=M))`
-"""
-
-# ╔═╡ 1a1e818a-d774-417e-bd5c-18f88e116635
-begin
-	image_lossgap = load("./images/lossgap.png")
-	plot(image_lossgap, ticks = nothing, border = nothing)
 end
 
 # ╔═╡ 52ca4280-f092-4941-aed5-e3fc25b3149a
 md"""
-## Test set prediction
+## Test set prediction (1)
 
 We can compare the predicted costs $\theta = \varphi_w(x)$ and the true costs on samples from the test set.
 """
 
 # ╔═╡ 88ba9bb1-02b3-4f32-bf6c-be8f99626f13
 begin 
-	weights1 = load("./images/weights1.png")
-	plot(weights1, ticks = nothing, border = nothing)
+	true_costs = plot(load("./images/Warcraft/cost.pdf"))
+	computed_costs = plot(load("./images/Warcraft/computed_cost.pdf"))
+	plot(map, true_costs, computed_costs, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
 end
+
+# ╔═╡ 9dee8b4a-451c-4714-8257-9a47b2133002
+md"""
+## Test set prediction (2)
+"""
 
 # ╔═╡ ea2faddf-38b2-46ab-9a53-2057ade1f198
 begin 
-	img_path_label1 = load("./images/image_path_label1.png")
-	plot(img_path_label1, ticks = nothing, border = nothing)
+	computed_path = plot(load("./images/Warcraft/computed_path.pdf"))
+	plot(map, labelpath, computed_path, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
 end
 
 # ╔═╡ 5f023b91-b0ae-4e91-94fb-f56312c8135f
@@ -503,24 +492,14 @@ tikzset{EdgeStyle/.style = {
 
 # ╔═╡ b7477763-33b6-4506-a253-f0700472788d
 md"""
-## Results: loss
+## Results: delays propagation
 """
 
 # ╔═╡ cd4f2546-fe46-42db-8197-7278ccd32cbe
 begin 
-	vsp_loss = load("./images/vsp_loss.png")
-	plot(vsp_loss, ticks = nothing, border = nothing)
-end
-
-# ╔═╡ e87562b4-9b78-46e7-924d-8c966290065a
-md"""
-## Results: cost gap
-"""
-
-# ╔═╡ b0833e2c-9334-499d-be58-50d347f462e4
-begin
-	vsp_cost = load("./images/vsp_average_cost_gap.png")
-	plot(vsp_cost, ticks = nothing, border = nothing)
+	vspexperience = plot(load("./images/VSP/vsp_experience.png"))
+	vspheuristic = plot(load("./images/VSP/vsp_heuristic.png"))
+	plot(vspheuristic, vspexperience, layout = (1,2), ticks = nothing, border = nothing, size = (800, 300))
 end
 
 # ╔═╡ fa13eb7d-d6f9-48a8-9745-98bdc7e4ede0
@@ -666,7 +645,9 @@ md"""
 ## Fenchel-Young loss
 Natural non-negative & convex loss based on regularization:
 ```math
+\boxed{
 \mathcal{L}_{\Omega}^{\text{FY}}(\theta, \bar{y}) = \Omega^*(\theta) + \Omega(\bar{y}) - \theta^\top \bar{y}
+}
 ```
 Given a target solution $\bar{y}$ and a parameter $\theta$, a subgradient is given by:
 ```math
@@ -703,10 +684,9 @@ The optimization block has meaningful gradients $\implies$ we can backpropagate 
 # ╟─ad1a47b9-d9d3-4f39-ad8e-7749c651da12
 # ╟─f0ee67da-ff8b-4229-a1fc-3be190a2d0b1
 # ╟─4c661db2-312a-4e03-8f66-df2bb68ad9a7
-# ╟─d32c406d-f3d2-450d-a42d-d1ccab1b66b0
-# ╟─1a1e818a-d774-417e-bd5c-18f88e116635
 # ╟─52ca4280-f092-4941-aed5-e3fc25b3149a
 # ╟─88ba9bb1-02b3-4f32-bf6c-be8f99626f13
+# ╟─9dee8b4a-451c-4714-8257-9a47b2133002
 # ╟─ea2faddf-38b2-46ab-9a53-2057ade1f198
 # ╟─5f023b91-b0ae-4e91-94fb-f56312c8135f
 # ╟─c06b600f-3a79-416e-b2d8-3d85c571d2c8
@@ -721,8 +701,6 @@ The optimization block has meaningful gradients $\implies$ we can backpropagate 
 # ╟─c9cef05b-944b-4595-863d-a0312973d5a3
 # ╟─b7477763-33b6-4506-a253-f0700472788d
 # ╟─cd4f2546-fe46-42db-8197-7278ccd32cbe
-# ╟─e87562b4-9b78-46e7-924d-8c966290065a
-# ╟─b0833e2c-9334-499d-be58-50d347f462e4
 # ╟─fa13eb7d-d6f9-48a8-9745-98bdc7e4ede0
 # ╟─1484d096-0beb-44d7-8192-6948f3ccd7ca
 # ╟─81011ca8-c063-4ee4-8aaa-1a5021504ad0
