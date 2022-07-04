@@ -306,8 +306,8 @@ Source: [Vlastelica et al. (2020)](https://openreview.net/forum?id=BkevoJSYPB)
 
 # ╔═╡ ad1a47b9-d9d3-4f39-ad8e-7749c651da12
 begin
-	map = plot(load("./images/Warcraft/map.pdf"))
-	labelpath = plot(load("./images/Warcraft/path.pdf"))
+	map = plot(load("./images/Warcraft/map.png"))
+	labelpath = plot(load("./images/Warcraft/path.png"))
 	plot(map, labelpath, layout = (1,2), ticks = nothing, border = nothing, size = (800, 400))
 end
 
@@ -330,8 +330,8 @@ We can compare the predicted costs $\theta = \varphi_w(x)$ and the true costs on
 
 # ╔═╡ 88ba9bb1-02b3-4f32-bf6c-be8f99626f13
 begin 
-	true_costs = plot(load("./images/Warcraft/cost.pdf"))
-	computed_costs = plot(load("./images/Warcraft/computed_cost.pdf"))
+	true_costs = plot(load("./images/Warcraft/costs.png"))
+	computed_costs = plot(load("./images/Warcraft/computed_costs.png"))
 	plot(map, true_costs, computed_costs, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
 end
 
@@ -342,7 +342,7 @@ md"""
 
 # ╔═╡ ea2faddf-38b2-46ab-9a53-2057ade1f198
 begin 
-	computed_path = plot(load("./images/Warcraft/computed_path.pdf"))
+	computed_path = plot(load("./images/Warcraft/computed_path.png"))
 	plot(map, labelpath, computed_path, layout = (1,3), ticks = nothing, border = nothing, size = (800, 300))
 end
 
@@ -685,7 +685,7 @@ The optimization block has meaningful gradients $\implies$ we can backpropagate 
 # ╟─f0ee67da-ff8b-4229-a1fc-3be190a2d0b1
 # ╟─4c661db2-312a-4e03-8f66-df2bb68ad9a7
 # ╟─52ca4280-f092-4941-aed5-e3fc25b3149a
-# ╟─88ba9bb1-02b3-4f32-bf6c-be8f99626f13
+# ╠═88ba9bb1-02b3-4f32-bf6c-be8f99626f13
 # ╟─9dee8b4a-451c-4714-8257-9a47b2133002
 # ╟─ea2faddf-38b2-46ab-9a53-2057ade1f198
 # ╟─5f023b91-b0ae-4e91-94fb-f56312c8135f
