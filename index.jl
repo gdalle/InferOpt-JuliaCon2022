@@ -958,6 +958,9 @@ If we cannot have access to chosen paths $y$ or user costs $\theta$ for dataset 
 # ╔═╡ 28043665-f5fa-4ebc-8388-9a378ce1e894
 path_cost
 
+# ╔═╡ 71147b63-5c89-4296-b1a5-e9da2eeeb73e
+methods(path_cost)
+
 # ╔═╡ d11d4529-1c0c-4a15-8566-7ef4d86d4c57
 predicted_path = shortest_path(initial_encoder(x));
 
@@ -965,7 +968,9 @@ predicted_path = shortest_path(initial_encoder(x));
 path_cost(predicted_path; instance=x)
 
 # ╔═╡ 18dcd447-695f-4c14-b646-5c6b24d961ce
-exp_loss = path_cost ∘ PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5)
+exp_loss = Pushforward(
+	PerturbedAdditive(shortest_path; ε=1.0, nb_samples=5), path_cost
+)
 
 # ╔═╡ 8b182c60-18f2-413e-b077-eb1c39090fb5
 exp_loss(initial_encoder(x); instance=x)
@@ -3064,6 +3069,7 @@ version = "1.4.1+0"
 # ╟─953523a6-fa73-46ca-a59d-11bd818f8a11
 # ╟─ee6a4ba8-1342-448a-999d-aa063e883654
 # ╠═28043665-f5fa-4ebc-8388-9a378ce1e894
+# ╠═71147b63-5c89-4296-b1a5-e9da2eeeb73e
 # ╠═d11d4529-1c0c-4a15-8566-7ef4d86d4c57
 # ╠═51dcdae9-290b-4c08-be04-071c044ae9e4
 # ╠═18dcd447-695f-4c14-b646-5c6b24d961ce
